@@ -24,7 +24,7 @@ class MyWindow : Window {
       mStride = mBmp.BackBufferStride;
       image.Source = mBmp;
       Content = image;
-
+      MouseLeftButtonDown += OnMouseLeftButtonDown;
       DrawMandelbrot (-0.5, 0, 1);
    }
 
@@ -71,6 +71,47 @@ class MyWindow : Window {
       }
    }
 
+   void OnMouseLeftButtonDown (object sender, MouseEventArgs e) {
+      var pt = e.GetPosition (this);
+      if (!isStartPointClick) {
+         x1 = pt.X;
+         y1 = pt.Y;
+         isStartPointClick = true;
+      } else {
+         x2 = pt.X;
+         y2 = pt.Y;
+         Line (x1, y1, x2, y2);
+         isStartPointClick = false;
+      }
+   }
+
+   void Line (double x0, double y0, double x1, double y1) {
+      double dx = x1 - x0;
+      double dy = y1 - y0;
+      double step;
+      if (Math.Abs (dx) > Math.Abs (dy))
+         step = Math.Abs (dx);
+      else
+         step = Math.Abs (dy);
+      double x_incr = dx / step;
+      double y_incr = dy / step;
+      double x = x0;
+      double y = y0;
+
+      try {
+         mBmp.Lock ();
+         mBase = mBmp.BackBuffer;
+         for (int i = 0; i < step; i++) {
+            x += x_incr;
+            y += y_incr;
+            SetPixel ((int)x, (int)y, 255);
+            mBmp.AddDirtyRect (new Int32Rect ((int)x, (int)y, 1, 1));
+         }
+      } finally {
+         mBmp.Unlock ();
+      }
+   }
+
    void DrawGraySquare () {
       try {
          mBmp.Lock ();
@@ -96,6 +137,8 @@ class MyWindow : Window {
    WriteableBitmap mBmp;
    int mStride;
    nint mBase;
+   double x1, y1, x2, y2;
+   bool isStartPointClick;
 }
 
 internal class Program {
