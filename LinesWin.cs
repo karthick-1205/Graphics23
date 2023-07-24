@@ -32,7 +32,7 @@ class LinesWin : Window {
       //   Interval = TimeSpan.FromMilliseconds (100), IsEnabled = true,
       //};
       //timer.Tick += NextFrame;
-      var polyFill = new PolyFillWin (@"D:\Academy23\Leaf-fill2.txt");
+      var polyFill = new PolyFillWin (@"D:\Academy23\leaf-fill.txt");
       polyFill.Fill (mBmp, 255);
    }
    readonly GrayBMP mBmp;
