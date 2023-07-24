@@ -111,30 +111,32 @@ class GrayBMP {
    }
 
    public void DrawThickLine (int x0, int y0, int x1, int y1, int width, int color, PolyFillFast mPF) {
-      var leftVertices = new Point2[4];
-      var rightVertices = new Point2[4];
+      var left = new Point2[4];
+      var right = new Point2[4];
       var factor = PI / 180;
       int index = 0;
       width /= 2;
       var angleLine = Math.Atan2 ((y1 - y0), (x1 - x0));
       for (int angle = 90; angle <= 270; angle += 60) {
          var tmpAngle = angleLine + (angle * factor);
-         var x01 = (int)(x0 + (width * Cos (tmpAngle)));
-         var y01 = (int)(y0 + (width * Sin (tmpAngle)));
-         leftVertices[index] = (new (x01, y01));
-         var x11 = (int)(x1 + (-width * Cos (tmpAngle)));
-         var y11 = (int)(y1 + (-width * Sin (tmpAngle)));
-         rightVertices[index] = (new (x11, y11));
+         var cosAngle = Cos (tmpAngle);
+         var sinAngle = Sin (tmpAngle);
+         var x01 = (int)(x0 + (width * cosAngle));
+         var y01 = (int)(y0 + (width * sinAngle));
+         left[index] = (new (x01, y01));
+         var x11 = (int)(x1 + (-width * cosAngle));
+         var y11 = (int)(y1 + (-width * sinAngle));
+         right[index] = (new (x11, y11));
          index++;
       }
       mPF.Reset ();
       for (int i = 0; i < 3; i++) {
          if (i == 0)
-            mPF.AddLine ((int)leftVertices[i].X, (int)leftVertices[i].Y, (int)rightVertices[3].X, (int)rightVertices[3].Y);
+            mPF.AddLine ((int)left[i].X, (int)left[i].Y, (int)right[3].X, (int)right[3].Y);
          else if (i == 2)
-            mPF.AddLine ((int)leftVertices[i + 1].X, (int)leftVertices[i + 1].Y, (int)rightVertices[i - 2].X, (int)rightVertices[i - 2].Y);
-         mPF.AddLine ((int)leftVertices[i].X, (int)leftVertices[i].Y, (int)leftVertices[i + 1].X, (int)leftVertices[i + 1].Y);
-         mPF.AddLine ((int)rightVertices[i].X, (int)rightVertices[i].Y, (int)rightVertices[i + 1].X, (int)rightVertices[i + 1].Y);
+            mPF.AddLine ((int)left[i + 1].X, (int)left[i + 1].Y, (int)right[i - 2].X, (int)right[i - 2].Y);
+         mPF.AddLine ((int)left[i].X, (int)left[i].Y, (int)left[i + 1].X, (int)left[i + 1].Y);
+         mPF.AddLine ((int)right[i].X, (int)right[i].Y, (int)right[i + 1].X, (int)right[i + 1].Y);
       }
       mPF.Fill (this, color);
    }
