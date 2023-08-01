@@ -1,5 +1,6 @@
 // Geometry.cs - Contains some basic Geometry structs (Complex numbers, Points, Vectors)
 // ---------------------------------------------------------------------------------------
+using System.Runtime.CompilerServices;
 using static System.Math;
 namespace GrayBMP;
 
@@ -130,11 +131,17 @@ class Polygon {
 class Drawing {
    public void Add (Polygon poly) {
       mPolys.Add (poly);
-      mBound = new (); 
+      mPoints.AddRange (mHPoints);
+      mPoints.AddRange (poly.Pts);
+      mHPoints = GetConvexHull (mPoints);
+      mBound = new ();
    }
 
    public IReadOnlyList<Polygon> Polys => mPolys;
+   public IReadOnlyList<Point2> ConvexHull => mHPoints;
    List<Polygon> mPolys = new ();
+   List<Point2> mPoints = new ();
+   List<Point2> mHPoints = new ();
 
    public static Drawing operator * (Drawing d, Matrix2 m) {
       Drawing d2 = new Drawing ();
@@ -149,11 +156,59 @@ class Drawing {
       }
    }
    Bound2 mBound;
+   public static int Orientation (Point2 a, Point2 b, Point2 c) {
+      int x1 = a.Round ().X, y1 = a.Round ().Y, x2 = b.Round ().X, y2 = b.Round ().Y, x3 = c.Round ().X, y3 = c.Round ().Y;
+      int val = ((y2 - y1) * (x3 - x2) - (x2 - x1) * (y3 - y2));
+      if (val == 0) return 0;
+      return (val > 0) ? 1 : -1;
+   }
+   public static Point2 GetSecondTop (Stack<Point2> stack) {
+      Point2 top = stack.Pop ();
+      Point2 secondTop = stack.Peek ();
+      stack.Push (top);
+      return secondTop;
+   }
 
-   public Bound2 GetBound (Matrix2 xfm) 
-      => new Bound2 (Polys.SelectMany (a => a.Pts.Select (p => p * xfm)));
+   public static List<Point2> GetConvexHull (List<Point2> points) {
+      int n = points.Count;
+      Point2 start = points[0];
+      for (int i = 1; i < n; i++) {
+         if (points[i].Y < start.Y || (points[i].Y == start.Y && points[i].X < start.X)) {
+            start = points[i];
+         }
+      }
+
+      points.Sort ((p1, p2) => {
+         int orientation = Orientation (start, p1, p2);
+         return orientation;
+      });
+
+      Stack<Point2> convexHullStack = new Stack<Point2> ();
+      convexHullStack.Push (start);
+      convexHullStack.Push (points[1]);
+
+      for (int i = 2; i < n; i++) {
+         while (convexHullStack.Count >= 2 && Orientation (GetSecondTop (convexHullStack), convexHullStack.Peek (), points[i]) != -1) {
+            convexHullStack.Pop ();
+         }
+         convexHullStack.Push (points[i]);
+      }
+
+      return convexHullStack.ToList ();
+   }
+   public IEnumerable<(Point2 A, Point2 B)> ConvexLines (Matrix2 xfm) {
+      Point2 p0 = ConvexHull[^1] * xfm;
+      for (int i = 0, n = ConvexHull.Count; i < n; i++) {
+         Point2 p1 = ConvexHull[i] * xfm;
+         yield return (p0, p1);
+         p0 = p1;
+      }
+   }
+   public Bound2 GetBound (Matrix2 xfm)
+      //=> new Bound2 (Polys.SelectMany (a => a.Pts.Select (p => p * xfm)));
+      => new Bound2 (ConvexHull.Select ((p => p * xfm)));
 
    /// <summary>Enumerate all the lines in this drawing</summary>
-   public IEnumerable<(Point2 A, Point2 B)> EnumLines (Matrix2 xfm) 
-      => mPolys.SelectMany (a => a.EnumLines (xfm));
+   public IEnumerable<(Point2 A, Point2 B)> EnumLines (Matrix2 xfm)
+   => mPolys.SelectMany (a => a.EnumLines (xfm));
 }
